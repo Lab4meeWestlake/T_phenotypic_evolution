@@ -1,0 +1,85 @@
+#This program is used for calculating the mean numbers of stabilizing mutations (F65L, V164A or I172V) and neofunctionalizing mutations (S66G, I168T, I168V or C204Y) per GFP molecule during evolution
+import os
+import csv
+import sys
+import re
+
+
+
+PATH='~'
+csvpath='~.csv'
+
+#ref indicates GFP (ancestor) protein sequence
+ref='MMSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGLQCCARYPDHMKLHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSCQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*'
+
+#the following codes are used for grouping sequences
+def Seq_List(filepath):
+	f1 = open(filepath, "r")
+	SNPlines = f1.readlines()
+	Seqlist=[]
+	for line in SNPlines:
+		if not line.strip(): continue
+		if re.search(">",line):
+			seqName=line
+		else:
+			Seqlist.append(line.strip())
+	return Seqlist		
+		
+#the following codes are used for calculating the mean numbers of stabilizing mutations (F65L, V164A or I172V) and neofunctionalizing mutations (S66G, I168T, I168V or C204Y) per GFP molecule in each replicate population and in each generation 
+MutantS=['65L','164A','172V']
+MutantF=['66G','168T','168V','204Y']
+
+def RFre(seqlist):
+  numSeq=len(seqlist)
+  meanF=''
+  meanS=''
+
+  if numSeq>0:
+    Nf=0
+    Ns=0
+
+    for line in seqlist:
+            for s in MutantS:
+                    if line[int(s[:-1])-1]==s[-1]:
+                            Ns+=1
+ 
+            for f in MutantF:
+                     if line[int(f[:-1])-1]==f[-1]:
+
+                             Nf+=1
+
+    meanF="%.4f" %(float(1.0*Nf)/numSeq)
+    meanS="%.4f" %(float(1.0*Ns)/numSeq)
+
+
+  return [meanF,meanS]
+
+
+def AllFre(filepath):
+  FileName = os.path.split(filepath)[1] 
+  Name=FileName.split('_')[0:3]
+  Seqlist_each=Seq_List(filepath)
+  rFre=RFre(Seqlist_each)
+  Each=Name+rFre
+  All.append(Each)
+
+
+#the following codes are used for reading all input files (in the folder "~/ProSeq") which contain protein sequences of each evolving population sequenced by SMRT sequencing
+def eachFile(filepath):
+	os.chdir(filepath)
+	pathDir = os.listdir(filepath)      
+	for s in pathDir:
+		newDir=os.path.join(filepath,s)     
+		if os.path.isfile(newDir) :         
+			if os.path.splitext(newDir)[1]==".fasta":  
+				AllFre(newDir)                     
+All=[]
+eachFile(PATH)
+
+
+#the following codes are used for writing the result into a csv file
+with open(csvpath, 'w',newline ='') as csvfile:
+	Wri = csv.writer(csvfile)
+	Wri.writerow(['Population','Replicate','Generation','Neofunctionalizing','Stabilizing'])
+	for each in All:
+		Wri.writerow(each)

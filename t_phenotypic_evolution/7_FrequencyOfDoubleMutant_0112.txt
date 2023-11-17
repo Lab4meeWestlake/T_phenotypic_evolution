@@ -1,0 +1,79 @@
+#This program is used for calculating frequencies of high-frequency double mutants during evolution
+import os
+import csv
+import sys
+import re
+
+
+
+PATH='~'
+csvpath='~.csv'
+
+#ref indicates GFP (ancestor) protein sequence
+ref='MMSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGLQCCARYPDHMKLHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSCQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*'
+
+#the following codes are used for grouping sequences
+def Seq_List(filepath):
+	f1 = open(filepath, "r")
+	SNPlines = f1.readlines()
+	Seqlist=[]
+	for line in SNPlines:
+		if not line.strip(): continue
+		if re.search(">",line):
+			seqName=line
+		else:
+			Seqlist.append(line.strip())
+	return Seqlist		
+		
+#the following codes are used for calculating the frequency for each of high-frequency double mutants in each replicate population and in each generation 
+
+def RFre(seqlist):
+	numSeq=len(seqlist)
+
+	if numSeq>0:
+		N=[0,0,0]
+
+		for line in seqlist:
+			if line[204-1]=="Y" and line[65-1]=='L' :
+				N[0]+=1
+			if line[204-1]=="Y" and line[164-1]=='A' :
+				N[1]+=1
+			if line[204-1]=="Y" and line[168-1]=='T' :
+				N[2]+=1
+				
+		Fre=["%.4f" %(float(100.0*n)/numSeq) for n in N]
+	else:  
+		Fre=['','','']
+	print (Fre)
+
+	return Fre
+
+
+def AllFre(filepath):
+	FileName = os.path.split(filepath)[1] 
+	Name=FileName.split('_')[0:3]
+	Seqlist_each=Seq_List(filepath)
+	rFre=RFre(Seqlist_each)
+	Each=Name+rFre
+	All.append(Each)
+
+
+#the following codes are used for reading all input files (in the folder "~/ProSeq") which contain protein sequences of each evolving population sequenced by SMRT sequencing
+def eachFile(filepath):
+	os.chdir(filepath)
+	pathDir = os.listdir(filepath)      
+	for s in pathDir:
+		newDir=os.path.join(filepath,s)     
+		if os.path.isfile(newDir) :         
+			if os.path.splitext(newDir)[1]==".fasta":  
+				AllFre(newDir)                     
+All=[]
+eachFile(PATH)
+
+
+#the following codes are used for writing the result into a csv file
+with open(csvpath, 'w') as csvfile:
+	Wri = csv.writer(csvfile)
+	Wri.writerow(['Population','Replicate','Generation','C204Y+F65L','C204Y+V164A','C204Y+I168T'])
+	for each in All:
+		Wri.writerow(each)

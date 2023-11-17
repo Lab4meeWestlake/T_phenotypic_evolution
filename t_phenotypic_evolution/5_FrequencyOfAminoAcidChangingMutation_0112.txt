@@ -1,0 +1,127 @@
+#This program is used for estimating frequencies of amino-acid changing mutations during evolution in each replicate population 
+import os
+import csv
+import sys
+import re
+PATH='~'
+csvpath='~.csv'
+
+#ref indicates GFP (ancestor) protein sequence
+ref='MMSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGLQCCARYPDHMKLHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSCQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*'
+
+#the following codes are used for grouping sequences
+def Seq_List(filepath):
+	f1 = open(filepath, "r")
+	SNPlines = f1.readlines()
+	Seqlist=[]
+	for line in SNPlines:
+		if not line.strip(): continue
+		if re.search(">",line):
+			seqName=line
+		else:
+			Seqlist.append(line.strip())
+	return Seqlist
+
+
+#the followig codes are used for idenfitying amino-acid changing mutations in every one replicate population
+def Mut_list(seqlist):
+	Mutlist=[]
+	numseq=len(seqlist)
+	if numseq>0:	
+		for j in range (len(ref)):
+			for seq in seqlist:
+				if seq[j]!=ref[j]:
+					Mutlist.append(ref[j]+str(j+1)+seq[j])
+
+	return Mutlist
+
+Mut_all=[]
+def Mutall(filepath):
+	Seqlist_each=Seq_List(filepath)
+	Mut_each=Mut_list(Seqlist_each)
+	Mut_all.append(Mut_each)	
+
+#the following codes are used for reading all input files (in the folder "~/ProSeq") which contain protein sequences of each evolving population sequenced by SMRT sequencing
+def eachFile_Mut(filepath):
+	os.chdir(filepath)
+	pathDir = os.listdir(filepath)
+	for name in pathDir:
+		newDir=os.path.join(filepath,name)    
+		if os.path.isfile(newDir) :         
+			if os.path.splitext(newDir)[1]==".fasta":  
+				Mutall(newDir)
+			            
+
+eachFile_Mut(PATH)
+
+def Mutsort(mutlist):
+	Mutsort=[]
+	for i in range (len(ref)):
+		for mut in set(mutlist):
+			pos=mut[1:-1]
+			if pos==str(i+1):
+				Mutsort.append(mut)
+	return Mutsort
+
+MutAllList=list(set([x for each in Mut_all for x in each]))
+Mut_sel=Mutsort(MutAllList)
+numMut=len(Mut_sel)
+print ('the number of mutations :%s'%(numMut))
+
+#####################################
+#the followig codes are used for calculating frequencies of amino-acid changing mutations in each replicate population
+def MutFreSel_list(seqlist):
+	MutFreList=[]
+	numseq=len(seqlist)
+	if numseq>0:
+		mut_pos=[]	
+		for j in range (len(ref)):
+			for seq in seqlist:
+				if seq[j]!=ref[j]:
+					mut_pos.append(ref[j]+str(j+1)+seq[j])
+		for mut in Mut_sel:
+			Num=mut_pos.count(mut)
+			fre="%.4f"%(float(100*Num)/numseq)
+			mutFre=[mut[1:-1],mut,fre]
+			MutFreList.append(mutFre)
+
+	else:
+		for mut in Mut_sel:
+			MutFreList.append([mut[1:-1],mut,''])
+
+
+	return MutFreList
+
+
+
+def AllFre(filepath):
+	FileName = os.path.split(filepath)[1] 
+	Name=FileName.split('_')[0:3]
+	print (Name)
+	Seqlist_each=Seq_List(filepath)
+	MutFre=MutFreSel_list(Seqlist_each)
+	MutFre_each=[Name+x for x in MutFre]
+	All.append(MutFre_each)
+
+#the following codes are used for reading all input files (in the folder "~/ProSeq") which contain protein sequences of each evolving population sequenced by SMRT sequencing
+def eachFile(folderpath):
+	os.chdir(folderpath)
+	pathDir = os.listdir(folderpath) 
+	for name in pathDir:
+		newDir=os.path.join(folderpath,name)
+		if os.path.isfile(newDir) :         
+			if os.path.splitext(newDir)[1]==".fasta":  
+				AllFre(newDir) 
+
+
+All=[]
+eachFile(PATH)
+#print All
+#the following codes are used for writing the results into a csv file
+
+with open(csvpath, 'w') as csvfile:
+	Wri = csv.writer(csvfile)
+	Wri.writerow(['Generation','Population','Replicate','Position','Mutation','Frequency'])
+	for each in All:
+		for mut in each:
+			Wri.writerow(mut)
